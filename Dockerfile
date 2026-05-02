@@ -21,10 +21,11 @@ COPY --from=builder /code/.venv /code/.venv
 COPY --from=builder /code/app /code/app
 COPY --from=builder /code/alembic /code/alembic
 COPY --from=builder /code/alembic.ini /code/alembic.ini
+COPY start.sh /code/start.sh
 
 ENV PATH="/code/.venv/bin:$PATH"
 
 RUN adduser --disabled-password --no-create-home appuser
 USER appuser
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "start.sh"]

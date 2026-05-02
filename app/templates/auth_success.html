@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login successful</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f5f7fb;
+      color: #111827;
+    }
+
+    .card {
+      width: min(90vw, 420px);
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(17, 24, 39, 0.05);
+      padding: 28px 24px;
+      text-align: center;
+    }
+
+    .badge {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 14px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: #ecfdf3;
+      color: #047857;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      font-weight: 650;
+    }
+
+    p {
+      margin: 0;
+      color: #4b5563;
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+
+    .cta {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      text-decoration: none;
+      background: #111827;
+      color: #ffffff;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="badge">✓</div>
+    <h1>Login successful</h1>
+    <p>You're now signed in. Redirecting you back to the app...</p>
+    <noscript>
+      <a class="cta" href="{{ deeplink }}">Open app</a>
+    </noscript>
+  </main>
+  <script>window.location.href="{{ deeplink }}";</script>
+</body>
+</html>

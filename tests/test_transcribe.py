@@ -21,7 +21,7 @@ async def test_transcribe_no_credits(client, db_session, test_user, auth_token):
 async def test_transcribe_success(client, test_user, auth_token):
     mock_response = httpx.Response(200, json={"text": "Hello world", "language_code": "en"})
 
-    with patch("app.routers.transcribe.httpx.AsyncClient") as mock_client_cls:
+    with patch("app.providers.elevenlabs_provider.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=mock_response)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -45,7 +45,7 @@ async def test_transcribe_deducts_credit(client, test_user, auth_token):
     initial_credits = test_user.credits
     mock_response = httpx.Response(200, json={"text": "test"})
 
-    with patch("app.routers.transcribe.httpx.AsyncClient") as mock_client_cls:
+    with patch("app.providers.elevenlabs_provider.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=mock_response)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)

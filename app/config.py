@@ -22,6 +22,8 @@ class Settings(BaseSettings):
 
     initial_free_credits: int = 10
 
+    app_deeplink_scheme: str = "lalfred://auth/callback"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 
