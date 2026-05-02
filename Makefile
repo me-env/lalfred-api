@@ -1,4 +1,4 @@
-.PHONY: migrate migration db-reset db-current db-history downgrade dev
+.PHONY: migrate migration db-reset db-current db-history downgrade dev test
 
 # Run all pending migrations
 db-upgrade:
@@ -28,3 +28,7 @@ db-reset:
 # Start local dev server with reload
 dev:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run test suite
+test:
+	uv run pytest
