@@ -1,5 +1,5 @@
 import logging
-from typing import override
+from typing import Any, override
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -45,33 +45,35 @@ def setup_telemetry(app: FastAPI):
 
     headers = _parse_otel_headers(settings.otel_exporter_otlp_headers)
     protocol = settings.otel_exporter_otlp_protocol.strip().lower()
+    exporter: Any
+    log_exporter: Any
 
     if protocol == "http/protobuf":
         from opentelemetry.exporter.otlp.proto.http._log_exporter import \
-            OTLPLogExporter
+            OTLPLogExporter as HttpOTLPLogExporter
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import \
-            OTLPSpanExporter
+            OTLPSpanExporter as HttpOTLPSpanExporter
 
-        exporter = OTLPSpanExporter(
+        exporter = HttpOTLPSpanExporter(
             endpoint=settings.otel_exporter_otlp_endpoint,
             headers=headers or None,
         )
-        log_exporter = OTLPLogExporter(
+        log_exporter = HttpOTLPLogExporter(
             endpoint=settings.otel_exporter_otlp_endpoint,
             headers=headers or None,
         )
     else:
         from opentelemetry.exporter.otlp.proto.grpc._log_exporter import \
-            OTLPLogExporter
+            OTLPLogExporter as GrpcOTLPLogExporter
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
-            OTLPSpanExporter
+            OTLPSpanExporter as GrpcOTLPSpanExporter
 
-        exporter = OTLPSpanExporter(
+        exporter = GrpcOTLPSpanExporter(
             endpoint=settings.otel_exporter_otlp_endpoint,
             headers=headers or None,
             insecure=settings.otel_exporter_otlp_endpoint.startswith("http://"),
         )
-        log_exporter = OTLPLogExporter(
+        log_exporter = GrpcOTLPLogExporter(
             endpoint=settings.otel_exporter_otlp_endpoint,
             headers=headers or None,
             insecure=settings.otel_exporter_otlp_endpoint.startswith("http://"),

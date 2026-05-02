@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-import app.models  # noqa: F401
+from app import models as _models  # noqa: F401
 from app.database import engine
 from app.routers import auth, credits, transcribe, users, webhooks
 from app.telemetry import setup_telemetry
