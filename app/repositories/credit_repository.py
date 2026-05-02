@@ -33,6 +33,11 @@ async def create(
     type: TransactionType,
     description: str | None = None,
     lemon_order_id: str | None = None,
+    model: str | None = None,
+    duration_seconds: float | None = None,
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    character_count: int | None = None,
 ) -> CreditTransaction:
     transaction = CreditTransaction(
         user_id=user_id,
@@ -40,6 +45,11 @@ async def create(
         type=type,
         description=description,
         lemon_order_id=lemon_order_id,
+        model=model,
+        duration_seconds=duration_seconds,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        character_count=character_count,
     )
     db.add(transaction)
     await db.flush()

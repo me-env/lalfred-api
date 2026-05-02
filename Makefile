@@ -1,4 +1,4 @@
-.PHONY: migrate migration db-reset db-current db-history downgrade dev test
+.PHONY: migrate migration db-reset db-wipe db-current db-history downgrade dev test sort
 
 # Run all pending migrations
 db-upgrade:
@@ -25,6 +25,10 @@ db-reset:
 	uv run alembic downgrade base
 	uv run alembic upgrade head
 
+# Drop and recreate the public schema (hard reset of all DB objects/data)
+db-wipe:
+	docker compose exec -T db psql -U lalfred -d lalfred -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+
 # Start local dev server with reload
 dev:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -32,3 +36,9 @@ dev:
 # Run test suite
 test:
 	uv run pytest
+
+sort:
+	uv run isort .
+
+lint:
+	uv run mypy .

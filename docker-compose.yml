@@ -23,21 +23,12 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://lalfred:lalfred_dev@db:5432/lalfred
-      OTEL_SERVICE_NAME: lalfred-api
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_PYTHON_LOG_CORRELATION: "true"
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./app:/code/app
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.100.0
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-    volumes:
-      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
 
 volumes:
   pgdata:

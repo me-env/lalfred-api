@@ -3,10 +3,38 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from app.pricing import stt_credits
+
+MOCK_11L_RESPONSE = {
+    "text": "Hello world",
+    "language_code": "en",
+    "language_probability": 0.98,
+    "words": [
+        {"text": "Hello", "start": 0.0, "end": 0.5, "type": "word", "logprob": -0.1},
+        {"text": " ", "start": 0.5, "end": 0.5, "type": "spacing", "logprob": 0.0},
+        {"text": "world", "start": 0.5, "end": 1.2, "type": "word", "logprob": -0.2},
+    ],
+}
+MOCK_DURATION_S = 1.2
+EXPECTED_CREDITS = stt_credits(MOCK_DURATION_S)
+
+
+def _patch_elevenlabs(response_json: dict | None = None):
+    json_data = response_json or MOCK_11L_RESPONSE
+    mock_response = httpx.Response(200, json=json_data)
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    return patch(
+        "app.providers.elevenlabs_provider.httpx.AsyncClient",
+        return_value=mock_client,
+    )
+
 
 @pytest.mark.asyncio
-async def test_transcribe_no_credits(client, db_session, test_user, auth_token):
-    test_user.credits = 0
+async def test_transcribe_negative_balance_rejected(client, db_session, test_user, auth_token):
+    test_user.credits = -1
     await db_session.commit()
 
     resp = await client.post(
@@ -18,16 +46,22 @@ async def test_transcribe_no_credits(client, db_session, test_user, auth_token):
 
 
 @pytest.mark.asyncio
+async def test_transcribe_zero_balance_allowed(client, db_session, test_user, auth_token):
+    test_user.credits = 0
+    await db_session.commit()
+
+    with _patch_elevenlabs():
+        resp = await client.post(
+            "/transcribe",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            content=b"audio-data",
+        )
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_transcribe_success(client, test_user, auth_token):
-    mock_response = httpx.Response(200, json={"text": "Hello world", "language_code": "en"})
-
-    with patch("app.providers.elevenlabs_provider.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with _patch_elevenlabs():
         resp = await client.post(
             "/transcribe",
             headers={
@@ -41,17 +75,10 @@ async def test_transcribe_success(client, test_user, auth_token):
 
 
 @pytest.mark.asyncio
-async def test_transcribe_deducts_credit(client, test_user, auth_token):
+async def test_transcribe_deducts_credits_by_duration(client, test_user, auth_token):
     initial_credits = test_user.credits
-    mock_response = httpx.Response(200, json={"text": "test"})
 
-    with patch("app.providers.elevenlabs_provider.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client_cls.return_value = mock_client
-
+    with _patch_elevenlabs():
         await client.post(
             "/transcribe",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -61,4 +88,4 @@ async def test_transcribe_deducts_credit(client, test_user, auth_token):
     balance_resp = await client.get(
         "/credits/balance", headers={"Authorization": f"Bearer {auth_token}"}
     )
-    assert balance_resp.json()["credits"] == initial_credits - 1
+    assert balance_resp.json()["credits"] == initial_credits - EXPECTED_CREDITS

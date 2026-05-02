@@ -1,20 +1,15 @@
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.database import Base, engine
 import app.models  # noqa: F401
+from app.database import engine
 from app.routers import auth, credits, transcribe, users, webhooks
 from app.telemetry import setup_telemetry
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 

@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class WordType(StrEnum):
@@ -10,8 +10,6 @@ class WordType(StrEnum):
 
 
 class TranscriptionWord(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     text: str
     start: float | None = None
     end: float | None = None
@@ -21,8 +19,6 @@ class TranscriptionWord(BaseModel):
 
 
 class TranscriptionResult(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     language_code: str
     language_probability: float
     text: str

@@ -17,9 +17,13 @@ def sign_payload(payload: bytes) -> str:
 
 @pytest.mark.asyncio
 async def test_webhook_invalid_signature(client):
+    payload = json.dumps({
+        "meta": {"event_name": "order_created"},
+        "data": {"id": "order-invalid-signature", "attributes": {}},
+    }).encode()
     resp = await client.post(
         "/webhooks/lemonsqueezy",
-        content=b'{"test": true}',
+        content=payload,
         headers={"x-signature": "invalid", "content-type": "application/json"},
     )
     assert resp.status_code == 403
@@ -49,7 +53,7 @@ async def test_webhook_order_created(client, test_user):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["credits_added"] == 100
+    assert data["credits_added"] == 2500
 
 
 @pytest.mark.asyncio

@@ -18,11 +18,29 @@ dependencies = [
     "python-multipart>=0.0.20",
     "opentelemetry-api>=1.33.1",
     "opentelemetry-sdk>=1.33.1",
-    "opentelemetry-instrumentation-fastapi>=0.54b1",
-    "opentelemetry-instrumentation-sqlalchemy>=0.54b1",
-    "opentelemetry-instrumentation-httpx>=0.54b1",
+    "opentelemetry-instrumentation-fastapi==0.62b1",
+    "opentelemetry-instrumentation-sqlalchemy==0.62b1",
+    "opentelemetry-instrumentation-httpx==0.62b1",
     "opentelemetry-exporter-otlp>=1.33.1",
     "jinja2>=3.1.6",
+    "opentelemetry-instrumentation>=0.62b1",
+    "opentelemetry-distro>=0.62b1",
+    "opentelemetry-instrumentation-asyncio==0.62b1",
+    "opentelemetry-instrumentation-dbapi==0.62b1",
+    "opentelemetry-instrumentation-logging==0.62b1",
+    "opentelemetry-instrumentation-sqlite3==0.62b1",
+    "opentelemetry-instrumentation-threading==0.62b1",
+    "opentelemetry-instrumentation-urllib==0.62b1",
+    "opentelemetry-instrumentation-wsgi==0.62b1",
+    "opentelemetry-instrumentation-asgi==0.62b1",
+    "opentelemetry-instrumentation-asyncpg==0.62b1",
+    "opentelemetry-instrumentation-click==0.62b1",
+    "opentelemetry-instrumentation-grpc==0.62b1",
+    "opentelemetry-instrumentation-jinja2==0.62b1",
+    "opentelemetry-instrumentation-requests==0.62b1",
+    "opentelemetry-instrumentation-starlette==0.62b1",
+    "opentelemetry-instrumentation-tortoiseorm==0.62b1",
+    "opentelemetry-instrumentation-urllib3==0.62b1",
 ]
 
 [dependency-groups]
@@ -31,7 +49,15 @@ dev = [
     "pytest-asyncio>=0.25.3",
     "aiosqlite>=0.21.0",
     "mypy>=1.20.2",
+    "isort>=8.0.1",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.basedpyright]
+reportMissingTypeStubs = "none"
+
+[[tool.basedpyright.executionEnvironments]]
+root = "alembic/versions"
+reportUnusedCallResult = "none"

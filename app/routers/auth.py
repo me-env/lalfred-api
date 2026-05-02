@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
@@ -11,6 +12,8 @@ from app.services import auth_service
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
+logger = logging.getLogger(__name__)
+
 
 @router.get("/google/login", response_model=GoogleAuthURL)
 async def google_login():
@@ -19,6 +22,7 @@ async def google_login():
 
 @router.get("/google/callback")
 async def google_callback(request: Request, code: str, db: AsyncSession = Depends(get_db)):
+    logger.info(f"Google callback received for code: {code}")
     _user, deeplink = await auth_service.handle_callback(db, code)
     await db.commit()
     return templates.TemplateResponse(request, "auth_success.html", {"deeplink": deeplink})

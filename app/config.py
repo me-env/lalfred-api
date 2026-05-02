@@ -1,4 +1,6 @@
-from pydantic_settings import BaseSettings
+from typing import ClassVar
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -17,14 +19,16 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str = ""
 
-    otel_service_name: str = "lalfred-api"
+    otel_service_name: str = "lalfred-api-dev"
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+    otel_exporter_otlp_protocol: str = "grpc"
+    otel_exporter_otlp_headers: str = ""
 
     initial_free_credits: int = 10
 
     app_deeplink_scheme: str = "lalfred://auth/callback"
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()
