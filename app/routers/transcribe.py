@@ -4,12 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import User
+from app.schemas.transcription import TranscriptionResult
 from app.services import transcribe_service
 
 router = APIRouter(prefix="/transcribe", tags=["transcribe"])
 
 
-@router.post("")
+@router.post("", response_model=TranscriptionResult)
 async def transcribe(
     request: Request,
     user: User = Depends(get_current_user),

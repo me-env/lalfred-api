@@ -4,9 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import TransactionType, User
 from app.providers import elevenlabs_provider
 from app.repositories import credit_repository
+from app.schemas.transcription import TranscriptionResult
 
 
-async def transcribe(db: AsyncSession, user: User, body: bytes, content_type: str) -> dict:
+async def transcribe(db: AsyncSession, user: User, body: bytes, content_type: str) -> TranscriptionResult:
     if user.credits <= 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,

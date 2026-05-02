@@ -4,13 +4,14 @@ import httpx
 from fastapi import HTTPException
 
 from app.config import settings
+from app.schemas.transcription import TranscriptionResult
 
 logger = logging.getLogger(__name__)
 
 ELEVENLABS_SCRIBE_URL = "https://api.elevenlabs.io/v1/speech-to-text"
 
 
-async def transcribe(body: bytes, content_type: str) -> dict:
+async def transcribe(body: bytes, content_type: str) -> TranscriptionResult:
     headers = {
         "xi-api-key": settings.elevenlabs_api_key,
         "Content-Type": content_type,
@@ -24,4 +25,4 @@ async def transcribe(body: bytes, content_type: str) -> dict:
             status_code=resp.status_code,
             detail=f"ElevenLabs API error: {resp.text}",
         )
-    return resp.json()
+    return TranscriptionResult.model_validate(resp.json())
