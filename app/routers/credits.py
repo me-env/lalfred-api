@@ -1,0 +1,32 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth import get_current_user
+from app.database import get_db
+from app.models import CreditTransaction, User
+from app.schemas import CreditBalance, CreditTransactionRead
+
+router = APIRouter(prefix="/credits", tags=["credits"])
+
+
+@router.get("/balance", response_model=CreditBalance)
+async def get_balance(user: User = Depends(get_current_user)):
+    return CreditBalance(credits=user.credits)
+
+
+@router.get("/transactions", response_model=list[CreditTransactionRead])
+async def list_transactions(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
+):
+    result = await db.execute(
+        select(CreditTransaction)
+        .where(CreditTransaction.user_id == user.id)
+        .order_by(CreditTransaction.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return result.scalars().all()

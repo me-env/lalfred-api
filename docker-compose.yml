@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lalfred
+      POSTGRES_PASSWORD: lalfred_dev
+      POSTGRES_DB: lalfred
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lalfred"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://lalfred:lalfred_dev@db:5432/lalfred
+      OTEL_SERVICE_NAME: lalfred-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app:/code/app
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
+
+volumes:
+  pgdata:

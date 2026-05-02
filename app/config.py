@@ -1,0 +1,28 @@
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    database_url: str = "postgresql+asyncpg://lalfred:lalfred_dev@localhost:5432/lalfred"
+
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+
+    jwt_secret: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expiration_minutes: int = 10080  # 7 days
+
+    lemonsqueezy_webhook_secret: str = ""
+    lemonsqueezy_api_key: str = ""
+
+    elevenlabs_api_key: str = ""
+
+    otel_service_name: str = "lalfred-api"
+    otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+
+    initial_free_credits: int = 10
+
+    model_config = {"env_file": ".env", "extra": "ignore"}
+
+
+settings = Settings()

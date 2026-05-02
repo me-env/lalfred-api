@@ -1,0 +1,77 @@
+from unittest.mock import AsyncMock, patch
+
+import httpx
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_google_login_returns_url(client):
+    resp = await client.get("/auth/google/login")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "url" in data
+    assert "accounts.google.com" in data["url"]
+
+
+@pytest.mark.asyncio
+async def test_google_callback_creates_user(client):
+    mock_token_response = httpx.Response(
+        200,
+        json={
+            "access_token": "mock-access-token",
+            "token_type": "Bearer",
+            "id_token": "mock-id-token",
+        },
+    )
+    mock_userinfo_response = httpx.Response(
+        200,
+        json={
+            "sub": "new-google-sub-456",
+            "email": "newuser@example.com",
+            "name": "New User",
+            "picture": "https://example.com/photo.jpg",
+        },
+    )
+
+    with patch("app.routers.auth.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_token_response)
+        mock_client.get = AsyncMock(return_value=mock_userinfo_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_client
+
+        resp = await client.get("/auth/google/callback", params={"code": "test-code"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+
+@pytest.mark.asyncio
+async def test_google_callback_existing_user_updates(client, test_user):
+    mock_token_response = httpx.Response(
+        200,
+        json={"access_token": "mock-access-token", "token_type": "Bearer"},
+    )
+    mock_userinfo_response = httpx.Response(
+        200,
+        json={
+            "sub": test_user.google_sub,
+            "email": "updated@example.com",
+            "name": "Updated Name",
+            "picture": "https://example.com/new.jpg",
+        },
+    )
+
+    with patch("app.routers.auth.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_token_response)
+        mock_client.get = AsyncMock(return_value=mock_userinfo_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client_cls.return_value = mock_client
+
+        resp = await client.get("/auth/google/callback", params={"code": "test-code"})
+        assert resp.status_code == 200
+        assert "access_token" in resp.json()
