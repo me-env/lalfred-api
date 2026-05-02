@@ -1,5 +1,5 @@
 import logging
-from typing import Any, override
+from typing import override
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -38,49 +38,57 @@ class _ExcludeOtelInternalLogsFilter(logging.Filter):
         return not record.name.startswith("opentelemetry")
 
 
-def setup_telemetry(app: FastAPI):
+def _configure_http_protobuf_exporters(
+    provider: TracerProvider, logger_provider: LoggerProvider, headers: dict[str, str]
+) -> None:
+    from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+    span_exporter = OTLPSpanExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        headers=headers or None,
+    )
+    log_exporter = OTLPLogExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        headers=headers or None,
+    )
+    provider.add_span_processor(BatchSpanProcessor(span_exporter))
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+
+def _configure_grpc_exporters(
+    provider: TracerProvider, logger_provider: LoggerProvider, headers: dict[str, str]
+) -> None:
+    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+    insecure = settings.otel_exporter_otlp_endpoint.startswith("http://")
+    span_exporter = OTLPSpanExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        headers=headers or None,
+        insecure=insecure,
+    )
+    log_exporter = OTLPLogExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        headers=headers or None,
+        insecure=insecure,
+    )
+    provider.add_span_processor(BatchSpanProcessor(span_exporter))
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+
+def setup_telemetry(app: FastAPI) -> None:
     resource = Resource.create({"service.name": settings.otel_service_name})
     provider = TracerProvider(resource=resource)
     logger_provider = LoggerProvider(resource=resource)
 
     headers = _parse_otel_headers(settings.otel_exporter_otlp_headers)
     protocol = settings.otel_exporter_otlp_protocol.strip().lower()
-    exporter: Any
-    log_exporter: Any
 
     if protocol == "http/protobuf":
-        from opentelemetry.exporter.otlp.proto.http._log_exporter import \
-            OTLPLogExporter as HttpOTLPLogExporter
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import \
-            OTLPSpanExporter as HttpOTLPSpanExporter
-
-        exporter = HttpOTLPSpanExporter(
-            endpoint=settings.otel_exporter_otlp_endpoint,
-            headers=headers or None,
-        )
-        log_exporter = HttpOTLPLogExporter(
-            endpoint=settings.otel_exporter_otlp_endpoint,
-            headers=headers or None,
-        )
+        _configure_http_protobuf_exporters(provider, logger_provider, headers)
     else:
-        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import \
-            OTLPLogExporter as GrpcOTLPLogExporter
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
-            OTLPSpanExporter as GrpcOTLPSpanExporter
-
-        exporter = GrpcOTLPSpanExporter(
-            endpoint=settings.otel_exporter_otlp_endpoint,
-            headers=headers or None,
-            insecure=settings.otel_exporter_otlp_endpoint.startswith("http://"),
-        )
-        log_exporter = GrpcOTLPLogExporter(
-            endpoint=settings.otel_exporter_otlp_endpoint,
-            headers=headers or None,
-            insecure=settings.otel_exporter_otlp_endpoint.startswith("http://"),
-        )
-
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+        _configure_grpc_exporters(provider, logger_provider, headers)
 
     trace.set_tracer_provider(provider)
     set_logger_provider(logger_provider)
