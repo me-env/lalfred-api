@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from typing import ClassVar
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserRead(BaseModel):
@@ -10,6 +11,7 @@ class UserRead(BaseModel):
     name: str | None
     picture: str | None
     credits: int
+    is_subscribed: bool
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)

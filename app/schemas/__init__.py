@@ -3,8 +3,9 @@ from app.schemas.credits import CreditBalance, CreditTransactionRead
 from app.schemas.transcription import (TranscriptionResult, TranscriptionWord,
                                        WordType)
 from app.schemas.user import UserRead
-from app.schemas.webhook import (LemonSqueezyWebhook,
-                                 LemonSqueezyWebhookResponse)
+from app.schemas.webhooks import (
+    LemonSqueezyOrderCreatedWebhook,
+    LemonSqueezySubscriptionPaymentSuccessWebhook, LemonSqueezyWebhookResponse)
 
 __all__ = [
     "GoogleAuthURL",
@@ -15,6 +16,7 @@ __all__ = [
     "TranscriptionResult",
     "TranscriptionWord",
     "WordType",
-    "LemonSqueezyWebhook",
+    "LemonSqueezyOrderCreatedWebhook",
+    "LemonSqueezySubscriptionPaymentSuccessWebhook",
     "LemonSqueezyWebhookResponse",
 ]

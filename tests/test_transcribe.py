@@ -17,6 +17,9 @@ MOCK_11L_RESPONSE = {
 }
 MOCK_DURATION_S = 1.2
 EXPECTED_CREDITS = stt_credits(MOCK_DURATION_S)
+EXPECTED_CREDITS_WITH_KT = stt_credits(MOCK_DURATION_S, keyterms=True)
+
+AUDIO_FILE = ("file", ("audio.wav", b"audio-data", "audio/wav"))
 
 
 def _patch_elevenlabs(response_json: dict | None = None):
@@ -40,7 +43,7 @@ async def test_transcribe_negative_balance_rejected(client, db_session, test_use
     resp = await client.post(
         "/transcribe",
         headers={"Authorization": f"Bearer {auth_token}"},
-        content=b"audio-data",
+        files=[AUDIO_FILE],
     )
     assert resp.status_code == 402
 
@@ -54,7 +57,7 @@ async def test_transcribe_zero_balance_allowed(client, db_session, test_user, au
         resp = await client.post(
             "/transcribe",
             headers={"Authorization": f"Bearer {auth_token}"},
-            content=b"audio-data",
+            files=[AUDIO_FILE],
         )
     assert resp.status_code == 200
 
@@ -64,11 +67,8 @@ async def test_transcribe_success(client, test_user, auth_token):
     with _patch_elevenlabs():
         resp = await client.post(
             "/transcribe",
-            headers={
-                "Authorization": f"Bearer {auth_token}",
-                "Content-Type": "multipart/form-data; boundary=abc",
-            },
-            content=b"audio-data",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            files=[AUDIO_FILE],
         )
         assert resp.status_code == 200
         assert resp.json()["text"] == "Hello world"
@@ -82,10 +82,63 @@ async def test_transcribe_deducts_credits_by_duration(client, test_user, auth_to
         await client.post(
             "/transcribe",
             headers={"Authorization": f"Bearer {auth_token}"},
-            content=b"audio-data",
+            files=[AUDIO_FILE],
         )
 
     balance_resp = await client.get(
         "/credits/balance", headers={"Authorization": f"Bearer {auth_token}"}
     )
     assert balance_resp.json()["credits"] == initial_credits - EXPECTED_CREDITS
+
+
+@pytest.mark.asyncio
+async def test_transcribe_with_keyterms_costs_more(client, test_user, auth_token):
+    long_response = {
+        **MOCK_11L_RESPONSE,
+        "audio_duration_secs": 120.0,
+    }
+    base_cost = stt_credits(120.0)
+    kt_cost = stt_credits(120.0, keyterms=True)
+    assert kt_cost > base_cost
+
+    initial_credits = test_user.credits
+
+    with _patch_elevenlabs(long_response):
+        resp = await client.post(
+            "/transcribe",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            params={"keyterms": ["ElevenLabs", "custom term"]},
+            files=[AUDIO_FILE],
+        )
+    assert resp.status_code == 200
+
+    balance_resp = await client.get(
+        "/credits/balance", headers={"Authorization": f"Bearer {auth_token}"}
+    )
+    assert balance_resp.json()["credits"] == initial_credits - kt_cost
+
+
+@pytest.mark.asyncio
+async def test_transcribe_forwards_required_scribe_fields(client, auth_token):
+    mock_response = httpx.Response(200, json=MOCK_11L_RESPONSE)
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with patch(
+        "app.providers.elevenlabs_provider.httpx.AsyncClient",
+        return_value=mock_client,
+    ):
+        resp = await client.post(
+            "/transcribe",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            files=[AUDIO_FILE],
+        )
+
+    assert resp.status_code == 200
+    sent_files = mock_client.post.await_args.kwargs["files"]
+    sent_fields = {name: value for name, value in sent_files if name != "file"}
+    assert sent_fields["model_id"][1] == "scribe_v2"
+    assert sent_fields["no_verbatim"][1] == "true"
+    assert sent_fields["tag_audio_events"][1] == "false"

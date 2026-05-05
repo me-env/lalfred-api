@@ -1,4 +1,5 @@
 from app.models.credit_transaction import CreditTransaction, TransactionType
+from app.models.subscription_payment import SubscriptionPayment
 from app.models.user import User
 
-__all__ = ["User", "CreditTransaction", "TransactionType"]
+__all__ = ["User", "CreditTransaction", "TransactionType", "SubscriptionPayment"]

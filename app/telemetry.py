@@ -41,8 +41,10 @@ class _ExcludeOtelInternalLogsFilter(logging.Filter):
 def _configure_http_protobuf_exporters(
     provider: TracerProvider, logger_provider: LoggerProvider, headers: dict[str, str]
 ) -> None:
-    from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.http._log_exporter import \
+        OTLPLogExporter
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import \
+        OTLPSpanExporter
 
     span_exporter = OTLPSpanExporter(
         endpoint=settings.otel_exporter_otlp_endpoint,
@@ -59,8 +61,10 @@ def _configure_http_protobuf_exporters(
 def _configure_grpc_exporters(
     provider: TracerProvider, logger_provider: LoggerProvider, headers: dict[str, str]
 ) -> None:
-    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import \
+        OTLPLogExporter
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
+        OTLPSpanExporter
 
     insecure = settings.otel_exporter_otlp_endpoint.startswith("http://")
     span_exporter = OTLPSpanExporter(
@@ -78,6 +82,12 @@ def _configure_grpc_exporters(
 
 
 def setup_telemetry(app: FastAPI) -> None:
+    if settings.env == "test":
+        return
+
+    if not settings.otel_exporter_otlp_endpoint:
+        return
+
     resource = Resource.create({"service.name": settings.otel_service_name})
     provider = TracerProvider(resource=resource)
     logger_provider = LoggerProvider(resource=resource)

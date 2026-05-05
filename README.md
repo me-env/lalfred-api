@@ -55,7 +55,8 @@ pytest tests/ -v
 | GET | `/credits/balance` | Credit balance |
 | GET | `/credits/transactions` | Transaction history |
 | POST | `/transcribe` | Proxy to ElevenLabs Scribe v2 |
-| POST | `/webhooks/lemonsqueezy` | Lemon Squeezy payment webhook |
+| POST | `/webhooks/lemonsqueezy/order-created` | Lemon Squeezy order created webhook |
+| POST | `/webhooks/lemonsqueezy/subscription-payment-success` | Lemon Squeezy subscription payment success webhook |
 
 ## Environment Variables
 

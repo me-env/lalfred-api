@@ -35,7 +35,7 @@ dev:
 
 # Run test suite
 test:
-	uv run pytest
+	@set -a; . ./.env.test; set +a; uv run pytest
 
 sort:
 	uv run isort .

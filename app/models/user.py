@@ -10,6 +10,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.credit_transaction import CreditTransaction
+    from app.models.subscription_payment import SubscriptionPayment
 
 
 @final
@@ -28,3 +29,4 @@ class User(Base):
     )
 
     transactions: Mapped[list["CreditTransaction"]] = relationship(back_populates="user")
+    subscription_payments: Mapped[list["SubscriptionPayment"]] = relationship(back_populates="user")

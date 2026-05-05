@@ -1,5 +1,6 @@
-from app.pricing import (PRODUCTS_BY_NAME, estimate_stt_credits, llm_credits,
-                         resolve_product, stt_credits)
+from app.pricing import (PRODUCTS_BY_VARIANT_ID, Product, credits_from_payment,
+                         estimate_stt_credits, llm_credits, resolve_product,
+                         stt_credits)
 
 
 def test_stt_credits_short():
@@ -8,17 +9,17 @@ def test_stt_credits_short():
 
 def test_stt_credits_one_minute():
     credits = stt_credits(60.0)
-    assert credits == 4  # 60 * 0.0611 = 3.67 → ceil = 4
+    assert credits == 37  # 60 * 0.611 = 36.67 → ceil = 37
 
 
 def test_stt_credits_one_hour():
     credits = stt_credits(3600.0)
-    assert credits == 220  # 3600 * 0.0611 = 220.0
+    assert credits == 2200  # 3600 * 0.611 = 2200.0
 
 
 def test_stt_credits_five_minutes():
     credits = stt_credits(300.0)
-    assert credits == 19  # 300 * 0.0611 = 18.33 → ceil = 19
+    assert credits == 184  # 300 * 0.611 = 183.33 → ceil = 184
 
 
 def test_estimate_equals_actual():
@@ -27,14 +28,14 @@ def test_estimate_equals_actual():
 
 def test_llm_credits_gpt41():
     credits = llm_credits(input_tokens=1000, output_tokens=500, model="gpt-4.1")
-    # 1000 * 2e-6 + 500 * 8e-6 = 0.002 + 0.004 = 0.006 → 6 credits
-    assert credits == 6
+    # 1000 * 2e-6 + 500 * 8e-6 = 0.002 + 0.004 = 0.006 → 60 credits
+    assert credits == 60
 
 
 def test_llm_credits_gpt41_mini():
     credits = llm_credits(input_tokens=1000, output_tokens=500, model="gpt-4.1-mini")
-    # 1000 * 4e-7 + 500 * 1.6e-6 = 0.0004 + 0.0008 = 0.0012 → ceil = 2
-    assert credits == 2
+    # 1000 * 4e-7 + 500 * 1.6e-6 = 0.0004 + 0.0008 = 0.0012 → ceil = 12
+    assert credits == 12
 
 
 def test_llm_credits_minimum_one():
@@ -42,18 +43,28 @@ def test_llm_credits_minimum_one():
     assert credits == 1
 
 
-def test_resolve_product_by_name():
-    product = resolve_product(None, "starter", "")
+def test_credits_from_payment_usd():
+    assert credits_from_payment(1760, "USD") == 88000  # $17.60 → 88000 credits
+    assert credits_from_payment(400, "USD") == 20000    # $4.00 → 20000 credits
+    assert credits_from_payment(1000, "USD") == 50000   # $10.00 → 50000 credits
+
+
+def test_credits_from_payment_eur():
+    assert credits_from_payment(465, "EUR") == 25100  # €4.65 @ 1.08 = $5.02 -> 25100 credits
+
+
+def test_resolve_product_credits():
+    product = resolve_product("1604360")
     assert product is not None
-    assert product.credits == PRODUCTS_BY_NAME["starter"].credits
+    assert product.type == "credits"
 
 
-def test_resolve_product_by_product_name_fallback():
-    product = resolve_product(None, "unknown", "pro")
+def test_resolve_product_byok():
+    product = resolve_product("1604374")
     assert product is not None
-    assert product.credits == PRODUCTS_BY_NAME["pro"].credits
+    assert product.type == "byok"
 
 
-def test_resolve_product_unknown():
-    product = resolve_product(None, "unknown", "unknown")
+def test_resolve_product_unknown_variant_id():
+    product = resolve_product("unknown-variant")
     assert product is None

@@ -19,16 +19,17 @@ services:
     build: .
     ports:
       - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-include '*.py' --reload-include '.env.dev'
     env_file:
-      - .env
+      - .env.dev
     environment:
-      DATABASE_URL: postgresql+asyncpg://lalfred:lalfred_dev@db:5432/lalfred
       OTEL_PYTHON_LOG_CORRELATION: "true"
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./app:/code/app
+      - ./.env:/code/.env:ro
 
 volumes:
   pgdata:

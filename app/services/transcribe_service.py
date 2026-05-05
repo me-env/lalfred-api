@@ -24,11 +24,14 @@ def _audio_duration_from_result(result: TranscriptionResult) -> float:
 async def transcribe(
     db: AsyncSession,
     user: User,
-    body: bytes,
+    audio: bytes,
     content_type: str,
     *,
+    keyterms: list[str] | None = None,
     duration_hint_seconds: float | None = None,
 ) -> TranscriptionResult:
+    has_keyterms = bool(keyterms)
+
     if user.credits < 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -36,17 +39,20 @@ async def transcribe(
         )
 
     if duration_hint_seconds and duration_hint_seconds > PREFLIGHT_DURATION_THRESHOLD_S:
-        estimated = estimate_stt_credits(duration_hint_seconds)
+        estimated = estimate_stt_credits(duration_hint_seconds, keyterms=has_keyterms)
         if user.credits - estimated < MAX_NEGATIVE_BALANCE:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail="Insufficient credits for this recording length",
             )
 
-    result = await elevenlabs_provider.transcribe(body, content_type)
+    result = await elevenlabs_provider.transcribe(
+        audio, content_type, keyterms=keyterms,
+    )
 
     duration_s = _audio_duration_from_result(result)
-    cost = stt_credits(duration_s)
+    cost = stt_credits(duration_s, keyterms=has_keyterms)
+    label = "Scribe v2+keyterms" if has_keyterms else "Scribe v2"
 
     user.credits -= cost
     _ = await credit_repository.create(
@@ -54,7 +60,7 @@ async def transcribe(
         user_id=user.id,
         amount=-cost,
         type=TransactionType.USAGE,
-        description=f"Scribe v2 — {duration_s:.1f}s",
+        description=f"{label} — {duration_s:.1f}s",
         model="scribe_v2",
         duration_seconds=round(duration_s, 2),
     )

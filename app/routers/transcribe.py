@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
@@ -12,12 +12,15 @@ router = APIRouter(prefix="/transcribe", tags=["transcribe"])
 
 @router.post("", response_model=TranscriptionResult)
 async def transcribe(
-    request: Request,
+    file: UploadFile = File(...),
+    keyterms: list[str] | None = Query(default=None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    content_type = request.headers.get("content-type", "")
-    body = await request.body()
-    result = await transcribe_service.transcribe(db, user, body, content_type)
+    audio = await file.read()
+    content_type = file.content_type or "application/octet-stream"
+    result = await transcribe_service.transcribe(
+        db, user, audio, content_type, keyterms=keyterms,
+    )
     await db.commit()
     return result
