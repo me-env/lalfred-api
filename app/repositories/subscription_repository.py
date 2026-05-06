@@ -7,26 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import SubscriptionPayment
 
 
-async def find_by_invoice_id(db: AsyncSession, invoice_id: str) -> SubscriptionPayment | None:
-    result = await db.execute(
-        select(SubscriptionPayment).where(SubscriptionPayment.lemon_invoice_id == invoice_id)
-    )
-    return result.scalar_one_or_none()
-
-
 async def create(
     db: AsyncSession,
     *,
     user_id: uuid.UUID,
-    lemon_subscription_id: str,
-    lemon_invoice_id: str,
+    payment_claim_id: uuid.UUID,
     starts_at: datetime,
     ends_at: datetime,
 ) -> SubscriptionPayment:
     subscription_payment = SubscriptionPayment(
         user_id=user_id,
-        lemon_subscription_id=lemon_subscription_id,
-        lemon_invoice_id=lemon_invoice_id,
+        payment_claim_id=payment_claim_id,
         starts_at=starts_at,
         ends_at=ends_at,
     )

@@ -19,20 +19,13 @@ async def list_by_user(
     return list(result.scalars().all())
 
 
-async def find_by_order_id(db: AsyncSession, order_id: str) -> CreditTransaction | None:
-    result = await db.execute(
-        select(CreditTransaction).where(CreditTransaction.lemon_order_id == order_id)
-    )
-    return result.scalar_one_or_none()
-
-
 async def create(
     db: AsyncSession,
     user_id: uuid.UUID,
     amount: int,
     type: TransactionType,
     description: str | None = None,
-    lemon_order_id: str | None = None,
+    payment_claim_id: uuid.UUID | None = None,
     model: str | None = None,
     duration_seconds: float | None = None,
     input_tokens: int | None = None,
@@ -44,7 +37,7 @@ async def create(
         amount=amount,
         type=type,
         description=description,
-        lemon_order_id=lemon_order_id,
+        payment_claim_id=payment_claim_id,
         model=model,
         duration_seconds=duration_seconds,
         input_tokens=input_tokens,

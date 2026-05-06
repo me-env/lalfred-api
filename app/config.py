@@ -8,15 +8,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(extra="ignore")
 
-    env: Literal["dev", "test", "prod"] = "dev"
+    env: Literal["dev", "test", "prod"]
 
-    database_url: str = "postgresql+asyncpg://lalfred:lalfred_dev@localhost:5432/lalfred"
+    database_url: str
 
-    google_client_id: str = ""
-    google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+    google_client_id: str
+    google_client_secret: str
+    google_redirect_uri: str
 
-    jwt_secret: str = "change-me"
+    jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 10080  # 7 days
 
@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str
     openai_api_key: str
+    resend_api_key: str
 
     otel_service_name: str = "lalfred-api-dev"
     otel_exporter_otlp_endpoint: str = ""
@@ -35,18 +36,8 @@ class Settings(BaseSettings):
 
     app_deeplink_scheme: str = "lalfred://auth/callback"
 
-    @field_validator(
-        "lemonsqueezy_webhook_secret",
-        "lemonsqueezy_api_key",
-        "elevenlabs_api_key",
-        "openai_api_key",
-        mode="before",
-    )
-    @classmethod
-    def validate_required_non_empty_secret(cls, value: object, info: ValidationInfo) -> str:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError(f"{info.field_name} must be set and non-empty")
-        return value.strip()
+    email_from_address: str
+    email_support_address: str
 
 
-settings = Settings()  # pyright: ignore[reportCallIssue]
+settings = Settings()  # type: ignore[call-arg]  # pyright: ignore[reportCallIssue]

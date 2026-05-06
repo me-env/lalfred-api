@@ -1,12 +1,10 @@
 import hashlib
 import hmac
 import json
-import uuid
 
 import pytest
 
 from app.config import settings
-from app.models import User
 
 
 def sign_payload(payload: bytes) -> str:
@@ -304,18 +302,7 @@ async def test_order_created_with_real_lemonsqueezy_payload_shape(client, test_u
 # ── Subscription events ──────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_subscription_payment_success_with_real_payload(client, db_session):
-    db_session.add(
-        User(
-            id=uuid.uuid4(),
-            email="cyprien.25@gmail.com",
-            name="Cyprien Ricque",
-            google_sub="google-sub-webhook-subscription",
-            credits=10,
-        )
-    )
-    await db_session.commit()
-
+async def test_subscription_payment_success_with_real_payload(client):
     payload = json.dumps({
         "data": {
             "id": "6958066",

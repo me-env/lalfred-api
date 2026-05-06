@@ -1,7 +1,8 @@
+from typing import ClassVar
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CreditBalance(BaseModel):
@@ -15,4 +16,4 @@ class CreditTransactionRead(BaseModel):
     description: str | None
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)

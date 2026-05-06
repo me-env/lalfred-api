@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your L'Alfred claim key</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;color:#111827;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:480px;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 4px 14px rgba(17,24,39,0.05);">
+          <tr>
+            <td style="padding:28px 28px 8px 28px;">
+              <h1 style="margin:0 0 12px;font-size:1.25rem;font-weight:650;">Thanks for your purchase!</h1>
+              <p style="margin:0 0 16px;color:#4b5563;line-height:1.5;font-size:0.95rem;">
+                {% if claim_type == "credits" %}
+                You bought <strong>{{ "{:,}".format(credits_amount) }} credits</strong> for L'Alfred.
+                {% else %}
+                You activated a <strong>L'Alfred subscription</strong>.
+                {% endif %}
+                Use the key below to apply it to your account.
+              </p>
+
+              <div style="margin:18px 0 8px;text-align:center;">
+                <div style="display:inline-block;padding:14px 18px;border:1px dashed #d1d5db;border-radius:10px;background:#f9fafb;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.05rem;font-weight:600;letter-spacing:0.04em;color:#111827;-webkit-user-select:all;user-select:all;">
+                  {{ claim_key_display }}
+                </div>
+              </div>
+
+              <div style="margin:20px 0 4px;text-align:center;">
+                <a href="lalfred://redeem?key={{ claim_key_canonical }}"
+                   style="display:inline-block;padding:12px 22px;border-radius:10px;background:#111827;color:#ffffff;text-decoration:none;font-size:0.95rem;font-weight:600;">
+                  Redeem in L'Alfred
+                </a>
+              </div>
+              <p style="margin:8px 0 0;text-align:center;color:#6b7280;font-size:0.78rem;line-height:1.4;">
+                Opens the L'Alfred app with the key already filled in.
+              </p>
+
+              <div style="margin:24px 0 0;padding:14px 16px;background:#f9fafb;border:1px solid #f1f5f9;border-radius:10px;">
+                <p style="margin:0 0 6px;color:#111827;font-size:0.88rem;font-weight:600;">Redeem manually</p>
+                <ol style="margin:0;padding-left:18px;color:#4b5563;line-height:1.55;font-size:0.88rem;">
+                  <li>Click the L'Alfred icon in your menu bar (top right of macOS).</li>
+                  <li>Open <strong>Settings → Account</strong>.</li>
+                  <li>Sign in or create an account.</li>
+                  <li>Paste the key in <strong>Redeem a code</strong> and click <strong>Redeem</strong>.</li>
+                </ol>
+              </div>
+
+              <p style="margin:18px 0 0;color:#6b7280;font-size:0.82rem;line-height:1.5;">
+                The benefit is applied to whichever L'Alfred account is signed in when you redeem.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 28px 28px;border-top:1px solid #f1f5f9;">
+              <p style="margin:14px 0 0;color:#6b7280;font-size:0.82rem;line-height:1.5;">
+                Need help? Reach out to <a href="mailto:{{ support_email }}" style="color:#111827;">{{ support_email }}</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

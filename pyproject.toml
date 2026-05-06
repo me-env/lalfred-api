@@ -41,6 +41,7 @@ dependencies = [
     "opentelemetry-instrumentation-starlette==0.62b1",
     "opentelemetry-instrumentation-tortoiseorm==0.62b1",
     "opentelemetry-instrumentation-urllib3==0.62b1",
+    "resend>=2.30.0",
 ]
 
 [dependency-groups]

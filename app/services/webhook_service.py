@@ -5,15 +5,13 @@ from datetime import UTC, datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import SubscriptionPayment, TransactionType
 from app.pricing import credits_from_payment, resolve_product
 from app.providers import lemonsqueezy_provider
-from app.repositories import (credit_repository, subscription_repository,
-                              user_repository)
 from app.schemas.webhooks import (
     LemonSqueezyOrderCreatedAttributes, LemonSqueezyOrderCreatedWebhook,
     LemonSqueezySubscriptionPaymentSuccessAttributes,
     LemonSqueezySubscriptionPaymentSuccessWebhook, LemonSqueezyWebhookResponse)
+from app.services import payment_claim_service
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +28,7 @@ async def handle_order_created_webhook(
     variant_id = str(attributes.first_order_item.variant_id)
     logger.info(
         "order_created: signature ok, order_id=%s variant_id=%s test_mode=%s",
-        order_id,
-        variant_id,
-        data.meta.test_mode,
+        order_id, variant_id, data.meta.test_mode,
     )
 
     product = resolve_product(variant_id)
@@ -41,12 +37,10 @@ async def handle_order_created_webhook(
         return LemonSqueezyWebhookResponse(status="unknown_product")
 
     if product.type != "credits":
-        # NOTE: order_created for Subscription are ignored in favor of subscription_payment_success
+        # NOTE: order_created for Subscription is ignored in favor of subscription_payment_success
         logger.info(
             "order_created: ignored (subscriptions use subscription_payment_success): order_id=%s variant_id=%s product_type=%s",
-            order_id,
-            variant_id,
-            product.type,
+            order_id, variant_id, product.type,
         )
         return LemonSqueezyWebhookResponse(status="ignored")
 
@@ -55,32 +49,17 @@ async def handle_order_created_webhook(
         logger.error("order_created: missing payment amount order_id=%s", order_id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing payment amount")
 
-    user = await _require_user_by_email(db, attributes.user_email, order_id)
-    logger.info("order_created: resolved user id=%s email=%s", user.id, user.email)
-
-    existing = await credit_repository.find_by_order_id(db, order_id)
-    if existing is not None:
-        logger.info("order_created: already_processed order_id=%s credit_id=%s", order_id, existing.id)
+    credits = credits_from_payment(payment_cents, payment_currency)
+    claim = await payment_claim_service.create_credit_claim(
+        db,
+        buyer_email=attributes.user_email,
+        lemon_order_id=order_id,
+        credits_amount=credits,
+    )
+    if claim is None:
         return LemonSqueezyWebhookResponse(status="already_processed")
 
-    credits = credits_from_payment(payment_cents, payment_currency)
-    user.credits += credits
-    credit = await credit_repository.create(
-        db,
-        user_id=user.id,
-        amount=credits,
-        type=TransactionType.PURCHASE,
-        description=f"Purchased {credits} credits",
-        lemon_order_id=order_id,
-    )
-    logger.info(
-        "order_created: added %s credits to user id=%s order_id=%s credit_row_id=%s",
-        credits,
-        user.id,
-        order_id,
-        credit.id,
-    )
-    return LemonSqueezyWebhookResponse(status="ok", credits_added=credits, id=credit.id)
+    return LemonSqueezyWebhookResponse(status="ok", credits_added=credits, id=claim.id)
 
 
 async def handle_subscription_payment_success_webhook(
@@ -95,67 +74,28 @@ async def handle_subscription_payment_success_webhook(
     subscription_id = attributes.subscription_id
     logger.info(
         "subscription_payment_success: signature ok, invoice_id=%s subscription_id=%s variant_id=%s test_mode=%s billing_reason=%s",
-        invoice_id,
-        subscription_id,
-        attributes.variant_id,
-        data.meta.test_mode,
-        attributes.billing_reason,
+        invoice_id, subscription_id, attributes.variant_id,
+        data.meta.test_mode, attributes.billing_reason,
     )
-
-    user = await _require_user_by_email(db, attributes.user_email, invoice_id)
-    logger.info(
-        "subscription_payment_success: resolved user id=%s email=%s invoice_id=%s",
-        user.id,
-        user.email,
-        invoice_id,
-    )
-    existing = await subscription_repository.find_by_invoice_id(db, invoice_id)
-    if existing is not None:
-        logger.info(
-            "subscription_payment_success: already_processed invoice_id=%s subscription_payment_id=%s",
-            invoice_id,
-            existing.id,
-        )
-        return LemonSqueezyWebhookResponse(status="already_processed")
 
     starts_at, ends_at = _resolve_subscription_window(attributes)
-    logger.info(
-        "subscription_payment_success: recording payment user_id=%s window=%s -> %s",
-        user.id,
-        starts_at.isoformat(),
-        ends_at.isoformat(),
-    )
-    subscription: SubscriptionPayment = await subscription_repository.create(
+    claim = await payment_claim_service.create_subscription_claim(
         db,
-        user_id=user.id,
-        lemon_subscription_id=str(subscription_id),
+        buyer_email=attributes.user_email,
         lemon_invoice_id=invoice_id,
+        lemon_subscription_id=str(subscription_id),
         starts_at=starts_at,
         ends_at=ends_at,
     )
-    logger.info(
-        "subscription_payment_success: stored subscription_payment id=%s user_id=%s lemon_subscription_id=%s invoice_id=%s period=%s -> %s",
-        subscription.id,
-        user.id,
-        subscription_id,
-        invoice_id,
-        starts_at.isoformat(),
-        ends_at.isoformat(),
-    )
-    return LemonSqueezyWebhookResponse(status="ok")
+    if claim is None:
+        return LemonSqueezyWebhookResponse(status="already_processed")
+
+    return LemonSqueezyWebhookResponse(status="ok", id=claim.id)
 
 
 def _verify_signature(payload: bytes, signature: str) -> None:
     if not lemonsqueezy_provider.verify_signature(payload, signature):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid signature")
-
-
-async def _require_user_by_email(db: AsyncSession, email: str, webhook_id: str):
-    user = await user_repository.find_by_email(db, email)
-    if user is None:
-        logger.warning("Webhook %s for unknown user email: %s", webhook_id, email)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
 
 
 def _resolve_subscription_window(

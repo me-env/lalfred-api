@@ -1,5 +1,6 @@
 import uuid
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
@@ -9,6 +10,7 @@ from app.auth import create_access_token
 from app.database import Base, get_db
 from app.main import app
 from app.models import User
+from app.providers import resend_provider
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -49,6 +51,19 @@ async def test_user(db_session: AsyncSession):
 @pytest_asyncio.fixture
 async def auth_token(test_user: User):
     return create_access_token(test_user.id)
+
+
+@pytest.fixture(autouse=True)
+def stub_resend_provider(monkeypatch):
+    """Replace resend_provider.send_email so tests never hit the network."""
+    sent: list[dict] = []
+
+    async def fake_send_email(**kwargs):
+        sent.append(kwargs)
+        return "email_test_id"
+
+    monkeypatch.setattr(resend_provider, "send_email", fake_send_email)
+    return sent
 
 
 @pytest_asyncio.fixture

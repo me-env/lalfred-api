@@ -1,39 +1,54 @@
-.PHONY: migrate migration db-reset db-wipe db-current db-history downgrade dev test sort
+.PHONY: up down logs db-upgrade db-revision db-reset db-wipe db-current db-history downgrade dev test sort lint
 
-# Run all pending migrations
+COMPOSE := docker compose -f docker-compose.dev.yml
+EXEC_API := $(COMPOSE) exec -T api
+
+up:
+	$(COMPOSE) up -d
+
+down:
+	$(COMPOSE) down
+
+logs:
+	$(COMPOSE) logs -f --tail=300
+
+build:
+	$(COMPOSE) build
+
+# Run all pending migrations (inside the api container so env + DB are wired)
 db-upgrade:
-	uv run alembic upgrade head
+	$(EXEC_API) alembic upgrade head
 
-# Create a new named migration (usage: make migration name="add users table")
+# Create a new named migration (usage: make db-revision name="add users table")
 db-revision:
-	uv run alembic revision --autogenerate -m "$(name)"
+	$(EXEC_API) alembic revision --autogenerate -m "$(name)"
 
 # Downgrade by one revision
 downgrade:
-	uv run alembic downgrade -1
+	$(EXEC_API) alembic downgrade -1
 
 # Show current migration revision
 db-current:
-	uv run alembic current
+	$(EXEC_API) alembic current
 
 # Show migration history
 db-history:
-	uv run alembic history --verbose
+	$(EXEC_API) alembic history --verbose
 
 # Drop all tables and re-run all migrations from scratch
 db-reset:
-	uv run alembic downgrade base
-	uv run alembic upgrade head
+	$(EXEC_API) alembic downgrade base
+	$(EXEC_API) alembic upgrade head
 
 # Drop and recreate the public schema (hard reset of all DB objects/data)
 db-wipe:
-	docker compose exec -T db psql -U lalfred -d lalfred -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+	$(COMPOSE) exec -T db psql -U lalfred -d lalfred -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
 
-# Start local dev server with reload
+# Start the dev stack in the foreground (api + db with hot reload)
 dev:
-	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	$(COMPOSE) up
 
-# Run test suite
+# Run test suite (locally; uses sqlite in-memory, no DB needed)
 test:
 	@set -a; . ./.env.test; set +a; uv run pytest
 
