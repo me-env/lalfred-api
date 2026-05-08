@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,7 +13,7 @@ configure_logging()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     yield
     await engine.dispose()
 
@@ -32,4 +33,5 @@ app.include_router(webhooks.router)
 
 @app.get("/health")
 async def health():
+    logging.info("Health check")
     return {"status": "ok"}

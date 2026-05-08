@@ -22,8 +22,10 @@ async def redeem_claim(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ClaimRedeemResponse:
     result = await payment_claim_service.redeem(db, user=user, claim_key=payload.claim_key)
+
     await db.commit()
     logger.info("POST /claims/redeem committed user_id=%s type=%s", user.id, result.type)
+
     return ClaimRedeemResponse(
         type=result.type.value,  # pyright: ignore[reportArgumentType]
         credits_added=result.credits_added,

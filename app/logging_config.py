@@ -11,7 +11,7 @@ def configure_logging() -> None:
 
     Uvicorn configures its own loggers; ``app.*`` loggers propagate to the root logger,
     which defaults to WARNING, so INFO lines were invisible unless OpenTelemetry added a
-    root handler (only when ``otel_exporter_otlp_endpoint`` is set).
+    root handler (only when ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set).
     """
     global _configured
     if settings.env == "test" or _configured:

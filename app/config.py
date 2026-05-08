@@ -28,9 +28,6 @@ class Settings(BaseSettings):
     resend_api_key: str
 
     otel_service_name: str = "lalfred-api-dev"
-    otel_exporter_otlp_endpoint: str = ""
-    otel_exporter_otlp_protocol: str = "grpc"
-    otel_exporter_otlp_headers: str = ""
 
     initial_free_credits: int = 500
 

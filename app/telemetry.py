@@ -1,16 +1,20 @@
 import logging
-from typing import override
+import os
 
 from fastapi import FastAPI
-from opentelemetry import trace
+from opentelemetry import metrics, trace
 from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.logging.handler import LoggingHandler
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -19,95 +23,44 @@ from app.config import settings
 from app.database import engine
 
 
-def _parse_otel_headers(headers: str) -> dict[str, str]:
-    parsed_headers: dict[str, str] = {}
-    if not headers:
-        return parsed_headers
-
-    for header in headers.split(","):
-        key, sep, value = header.partition("=")
-        if sep and key and value:
-            parsed_headers[key.strip()] = value.strip()
-
-    return parsed_headers
-
-
-class _ExcludeOtelInternalLogsFilter(logging.Filter):
-    @override
-    def filter(self, record: logging.LogRecord) -> bool:
-        return not record.name.startswith("opentelemetry")
-
-
-def _configure_http_protobuf_exporters(
-    provider: TracerProvider, logger_provider: LoggerProvider, headers: dict[str, str]
-) -> None:
-    from opentelemetry.exporter.otlp.proto.http._log_exporter import \
-        OTLPLogExporter
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import \
-        OTLPSpanExporter
-
-    span_exporter = OTLPSpanExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint,
-        headers=headers or None,
-    )
-    log_exporter = OTLPLogExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint,
-        headers=headers or None,
-    )
-    provider.add_span_processor(BatchSpanProcessor(span_exporter))
-    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
-
-
-def _configure_grpc_exporters(
-    provider: TracerProvider, logger_provider: LoggerProvider, headers: dict[str, str]
-) -> None:
-    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import \
-        OTLPLogExporter
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
-        OTLPSpanExporter
-
-    insecure = settings.otel_exporter_otlp_endpoint.startswith("http://")
-    span_exporter = OTLPSpanExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint,
-        headers=headers or None,
-        insecure=insecure,
-    )
-    log_exporter = OTLPLogExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint,
-        headers=headers or None,
-        insecure=insecure,
-    )
-    provider.add_span_processor(BatchSpanProcessor(span_exporter))
-    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
-
-
 def setup_telemetry(app: FastAPI) -> None:
     if settings.env == "test":
+        print("Test environment, skipping telemetry setup.")
         return
 
-    if not settings.otel_exporter_otlp_endpoint:
+    # Endpoint, protocol and headers are read directly from OTEL_* env vars by
+    # the SDK (with proper W3C Baggage decoding for headers).
+    if not os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
+        print("OTEL_EXPORTER_OTLP_ENDPOINT not set, skipping telemetry setup.")
         return
 
-    resource = Resource.create({"service.name": settings.otel_service_name})
-    provider = TracerProvider(resource=resource)
+    resource = Resource.create({
+        "service.name": settings.otel_service_name,
+        "environment": settings.env,
+    })
+
+    trace_provider = TracerProvider(resource=resource)
+    trace_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+
     logger_provider = LoggerProvider(resource=resource)
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter()))
 
-    headers = _parse_otel_headers(settings.otel_exporter_otlp_headers)
-    protocol = settings.otel_exporter_otlp_protocol.strip().lower()
+    meter_provider = MeterProvider(
+        resource=resource,
+        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter())],
+    )
 
-    if protocol == "http/protobuf":
-        _configure_http_protobuf_exporters(provider, logger_provider, headers)
-    else:
-        _configure_grpc_exporters(provider, logger_provider, headers)
-
-    trace.set_tracer_provider(provider)
+    trace.set_tracer_provider(trace_provider)
     set_logger_provider(logger_provider)
+    metrics.set_meter_provider(meter_provider)
 
+    # LoggingInstrumentor injects trace context into stdlib LogRecords, sets the
+    # root logging format/level via basicConfig, and (since
+    # OTEL_PYTHON_LOG_AUTO_INSTRUMENTATION defaults to true) installs a handler
+    # on the root logger that ships logs to the global LoggerProvider.
     LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.INFO)
-    otel_log_handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
-    otel_log_handler.addFilter(_ExcludeOtelInternalLogsFilter())
-    root_logger = logging.getLogger()
-    root_logger.addHandler(otel_log_handler)
+
     FastAPIInstrumentor.instrument_app(app)
     SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
     HTTPXClientInstrumentor().instrument()
+    print("OTel configured.")

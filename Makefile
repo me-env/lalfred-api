@@ -10,7 +10,7 @@ down:
 	$(COMPOSE) down
 
 logs:
-	$(COMPOSE) logs -f --tail=300
+	$(COMPOSE) logs api -f --tail=300
 
 build:
 	$(COMPOSE) build
