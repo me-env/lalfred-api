@@ -47,7 +47,7 @@ def setup_telemetry(app: FastAPI) -> None:
 
     meter_provider = MeterProvider(
         resource=resource,
-        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter())],
+        metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter(), export_interval_millis=3000)],
     )
 
     trace.set_tracer_provider(trace_provider)
@@ -58,7 +58,7 @@ def setup_telemetry(app: FastAPI) -> None:
     # root logging format/level via basicConfig, and (since
     # OTEL_PYTHON_LOG_AUTO_INSTRUMENTATION defaults to true) installs a handler
     # on the root logger that ships logs to the global LoggerProvider.
-    LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.INFO)
+    LoggingInstrumentor().instrument(set_logging_format=False, log_level=logging.INFO)
 
     FastAPIInstrumentor.instrument_app(app)
     SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)

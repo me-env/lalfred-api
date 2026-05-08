@@ -27,6 +27,9 @@ async def transcribe(
     audio: bytes,
     content_type: str,
     *,
+    model_id: str = "scribe_v2",
+    no_verbatim: bool = True,
+    tag_audio_events: bool = False,
     keyterms: list[str] | None = None,
     duration_hint_seconds: float | None = None,
 ) -> TranscriptionResult:
@@ -47,12 +50,16 @@ async def transcribe(
             )
 
     result = await elevenlabs_provider.transcribe(
-        audio, content_type, keyterms=keyterms,
+        audio, content_type,
+        model_id=model_id,
+        no_verbatim=no_verbatim,
+        tag_audio_events=tag_audio_events,
+        keyterms=keyterms,
     )
 
     duration_s = _audio_duration_from_result(result)
     cost = stt_credits(duration_s, keyterms=has_keyterms)
-    label = "Scribe v2+keyterms" if has_keyterms else "Scribe v2"
+    label = f"{model_id}+keyterms" if has_keyterms else model_id
 
     user.credits -= cost
     _ = await credit_repository.create(
@@ -61,7 +68,7 @@ async def transcribe(
         amount=-cost,
         type=TransactionType.USAGE,
         description=f"{label} — {duration_s:.1f}s",
-        model="scribe_v2",
+        model=model_id,
         duration_seconds=round(duration_s, 2),
     )
     logger.info("Charged %d credits to user %s (%.1fs STT)", cost, user.email, duration_s)
