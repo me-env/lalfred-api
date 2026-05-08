@@ -1,6 +1,6 @@
 from app.schemas.auth import GoogleAuthURL, TokenResponse
 from app.schemas.claims import ClaimRedeemRequest, ClaimRedeemResponse
-from app.schemas.credits import CreditBalance, CreditTransactionRead
+from app.schemas.credits import CreditBalance, CreditTransactionRead, SignupBonus
 from app.schemas.transcription import (TranscriptionResult, TranscriptionWord,
                                        WordType)
 from app.schemas.user import UserRead
@@ -14,6 +14,7 @@ __all__ = [
     "UserRead",
     "CreditBalance",
     "CreditTransactionRead",
+    "SignupBonus",
     "ClaimRedeemRequest",
     "ClaimRedeemResponse",
     "TranscriptionResult",

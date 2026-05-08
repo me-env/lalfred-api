@@ -9,6 +9,10 @@ class CreditBalance(BaseModel):
     credits: int
 
 
+class SignupBonus(BaseModel):
+    credits: int
+
+
 class CreditTransactionRead(BaseModel):
     id: uuid.UUID
     amount: int
