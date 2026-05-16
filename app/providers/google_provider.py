@@ -4,6 +4,7 @@ import httpx
 from fastapi import HTTPException, status
 
 from app.config import settings
+from app.schemas.auth import GoogleTokenResponse, GoogleUserInfo
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -22,7 +23,7 @@ def get_login_url() -> str:
     return f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
 
 
-async def exchange_code(code: str) -> dict:
+async def exchange_code(code: str) -> GoogleTokenResponse:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             GOOGLE_TOKEN_URL,
@@ -39,10 +40,10 @@ async def exchange_code(code: str) -> dict:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to exchange code with Google",
         )
-    return resp.json()
+    return GoogleTokenResponse.model_validate(resp.json())
 
 
-async def get_userinfo(access_token: str) -> dict:
+async def get_userinfo(access_token: str) -> GoogleUserInfo:
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             GOOGLE_USERINFO_URL,
@@ -53,4 +54,4 @@ async def get_userinfo(access_token: str) -> dict:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to fetch Google user info",
         )
-    return resp.json()
+    return GoogleUserInfo.model_validate(resp.json())

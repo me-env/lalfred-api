@@ -1,14 +1,12 @@
 from typing import ClassVar, Literal
 
-from pydantic import ValidationInfo, field_validator
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(extra="ignore")
 
-    env: Literal["dev", "test", "prod"]
+    env: Literal["dev", "test", "prod", "staging"]
 
     database_url: str
 

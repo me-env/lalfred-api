@@ -16,12 +16,12 @@ def get_login_url() -> str:
 async def handle_callback(db: AsyncSession, code: str) -> tuple[User, str]:
     """Exchange code, upsert user, return (user, deeplink_url)."""
     tokens = await google_provider.exchange_code(code)
-    userinfo = await google_provider.get_userinfo(tokens["access_token"])
+    userinfo = await google_provider.get_userinfo(tokens.access_token)
 
-    google_sub = userinfo["sub"]
-    email = userinfo["email"]
-    name = userinfo.get("name")
-    picture = userinfo.get("picture")
+    google_sub = userinfo.sub
+    email = userinfo.email
+    name = userinfo.name
+    picture = userinfo.picture
 
     user = await user_repository.find_by_google_sub(db, google_sub)
 

@@ -73,9 +73,13 @@ class Product:
 
 
 PRODUCTS_BY_VARIANT_ID: dict[str, Product] = {
-    "1604360": Product(name="credits", type="credits"),
-    "1604374": Product(name="byok_monthly", type="byok"),
-    "1604369": Product(name="byok_annual", type="byok"),
+    "1604360": Product(name="credits", type="credits"), # Test mode
+    "1604374": Product(name="byok_monthly", type="byok"), # Test mode
+    "1604369": Product(name="byok_annual", type="byok"), # Test mode
+
+    "1646596": Product(name="credits", type="credits"), # Live
+    "1646598": Product(name="byok_annual", type="byok"), # Live
+    "1646599": Product(name="byok_monthly", type="byok"), # Live
 }
 
 
