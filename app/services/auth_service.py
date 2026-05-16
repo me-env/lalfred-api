@@ -1,12 +1,17 @@
+import logging
 from urllib.parse import urlencode
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import create_access_token
 from app.config import settings
-from app.models import User
+from app.models import TransactionType, User
 from app.providers import google_provider
-from app.repositories import user_repository
+from app.repositories import credit_repository, user_repository
+
+logger = logging.getLogger(__name__)
+
+SIGNUP_BONUS_DESCRIPTION = "Sign-up bonus"
 
 
 def get_login_url() -> str:
@@ -32,8 +37,8 @@ async def handle_callback(db: AsyncSession, code: str) -> tuple[User, str]:
             name=name,
             picture=picture,
             google_sub=google_sub,
-            credits=settings.initial_free_credits,
         )
+        await _grant_signup_bonus(db, user)
     else:
         user.email = email
         user.name = name
@@ -42,3 +47,22 @@ async def handle_callback(db: AsyncSession, code: str) -> tuple[User, str]:
     access_token = create_access_token(user.id)
     deeplink = f"{settings.app_deeplink_scheme}?{urlencode({'token': access_token})}"
     return user, deeplink
+
+
+async def _grant_signup_bonus(db: AsyncSession, user: User) -> None:
+    """Credit the sign-up bonus to a fresh user and record it in the ledger."""
+    bonus = settings.initial_free_credits
+    if bonus <= 0:
+        return
+    user.credits += bonus
+    transaction = await credit_repository.create(
+        db,
+        user_id=user.id,
+        amount=bonus,
+        type=TransactionType.BONUS,
+        description=SIGNUP_BONUS_DESCRIPTION,
+    )
+    logger.info(
+        "credit_transaction: created id=%s user_id=%s amount=%s type=bonus (sign-up)",
+        transaction.id, user.id, bonus,
+    )

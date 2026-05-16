@@ -2,7 +2,9 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
+from sqlalchemy import select
 
+from app.models import CreditTransaction, TransactionType
 from app.pricing import stt_credits
 
 MOCK_11L_RESPONSE = {
@@ -116,6 +118,27 @@ async def test_transcribe_with_keyterms_costs_more(client, test_user, auth_token
         "/credits/balance", headers={"Authorization": f"Bearer {auth_token}"}
     )
     assert balance_resp.json()["credits"] == initial_credits - kt_cost
+
+
+@pytest.mark.asyncio
+async def test_transcribe_stores_word_count(client, db_session, test_user, auth_token):
+    with _patch_elevenlabs():
+        resp = await client.post(
+            "/transcribe",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            files=[AUDIO_FILE],
+        )
+    assert resp.status_code == 200
+
+    result = await db_session.execute(
+        select(CreditTransaction).where(
+            CreditTransaction.user_id == test_user.id,
+            CreditTransaction.type == TransactionType.USAGE,
+        )
+    )
+    tx = result.scalars().one()
+    # MOCK_11L_RESPONSE has two WordType.WORD entries ("Hello", "world").
+    assert tx.word_count == 2
 
 
 @pytest.mark.asyncio

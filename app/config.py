@@ -34,5 +34,7 @@ class Settings(BaseSettings):
     email_from_address: str
     email_support_address: str
 
+    release_bucket_url: str = "https://lalfred-prod-public.s3.fr-par.scw.cloud"
+
 
 settings = Settings()  # type: ignore[call-arg]  # pyright: ignore[reportCallIssue]

@@ -1,4 +1,7 @@
 import logging
+import uuid
+from dataclasses import dataclass
+from datetime import datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,9 +11,37 @@ from app.pricing import (MAX_NEGATIVE_BALANCE, PREFLIGHT_DURATION_THRESHOLD_S,
                          estimate_stt_credits, stt_credits)
 from app.providers import elevenlabs_provider
 from app.repositories import credit_repository
-from app.schemas.transcription import TranscriptionResult
+from app.schemas.transcription import TranscriptionResult, WordType
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class TranscriptionUsageStats:
+    total_words: int
+    total_audio_seconds: float
+    # None when no audio has been transcribed yet (no usable denominator).
+    words_per_minute: float | None
+
+
+async def compute_usage_stats(
+    db: AsyncSession, user_id: uuid.UUID, since: datetime
+) -> TranscriptionUsageStats:
+    """
+    SQL-side aggregation of word count and audio duration since `since`.
+    A single row comes back regardless of transcription volume.
+    """
+    total_words, total_duration_s = (
+        await credit_repository.sum_transcription_metrics_since(db, user_id, since)
+    )
+    wpm: float | None = None
+    if total_duration_s > 0 and total_words > 0:
+        wpm = total_words / (total_duration_s / 60.0)
+    return TranscriptionUsageStats(
+        total_words=total_words,
+        total_audio_seconds=round(total_duration_s, 2),
+        words_per_minute=wpm,
+    )
 
 
 def _audio_duration_from_result(result: TranscriptionResult) -> float:
@@ -19,6 +50,14 @@ def _audio_duration_from_result(result: TranscriptionResult) -> float:
     if result.words:
         return max((w.end for w in result.words if w.end is not None), default=0.0)
     return 0.0
+
+
+def _word_count_from_result(result: TranscriptionResult) -> int:
+    # Prefer the structured word list (excluding spacing/audio events).
+    if result.words:
+        return sum(1 for w in result.words if w.type == WordType.WORD)
+    # Fallback for providers that only return raw text.
+    return len(result.text.split()) if result.text else 0
 
 
 async def transcribe(
@@ -58,6 +97,7 @@ async def transcribe(
     )
 
     duration_s = _audio_duration_from_result(result)
+    word_count = _word_count_from_result(result)
     cost = stt_credits(duration_s, keyterms=has_keyterms)
     label = f"{model_id}+keyterms" if has_keyterms else model_id
 
@@ -70,6 +110,10 @@ async def transcribe(
         description=f"{label} — {duration_s:.1f}s",
         model=model_id,
         duration_seconds=round(duration_s, 2),
+        word_count=word_count,
     )
-    logger.info("Charged %d credits to user %s (%.1fs STT)", cost, user.email, duration_s)
+    logger.info(
+        "Charged %d credits to user %s (%.1fs STT, %d words)",
+        cost, user.email, duration_s, word_count,
+    )
     return result

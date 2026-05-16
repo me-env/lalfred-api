@@ -41,6 +41,7 @@ class CreditTransaction(Base):
     input_tokens: Mapped[int | None] = mapped_column(Integer)
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     character_count: Mapped[int | None] = mapped_column(Integer)
+    word_count: Mapped[int | None] = mapped_column(Integer)
 
     user: Mapped["User"] = relationship(back_populates="transactions")
     payment_claim: Mapped["PaymentClaim | None"] = relationship()

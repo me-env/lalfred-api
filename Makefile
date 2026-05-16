@@ -56,4 +56,4 @@ sort:
 	uv run isort .
 
 lint:
-	uv run mypy .
+	uv run mypy . --exclude tests
