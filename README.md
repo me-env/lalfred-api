@@ -1,6 +1,6 @@
 # L'Alfred API
 
-FastAPI backend for [L'Alfred](https://github.com/me-env/lalfred-ios), a macOS
+FastAPI backend for [L'Alfred](https://github.com/me-env/lalfred-macos), a macOS
 dictation app.
 
 It handles accounts and update delivery — nothing else. The app talks to the
