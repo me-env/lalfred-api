@@ -18,21 +18,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 10080  # 7 days
 
-    lemonsqueezy_webhook_secret: str
-    lemonsqueezy_api_key: str
-
-    elevenlabs_api_key: str
-    openai_api_key: str
-    resend_api_key: str
-
     otel_service_name: str = "lalfred-api-dev"
 
-    initial_free_credits: int = 500
-
     app_deeplink_scheme: str = "lalfred://auth/callback"
-
-    email_from_address: str
-    email_support_address: str
 
     release_bucket_url: str = "https://lalfred-prod-public.s3.fr-par.scw.cloud"
 

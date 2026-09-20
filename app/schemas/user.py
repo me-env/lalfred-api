@@ -10,8 +10,6 @@ class UserRead(BaseModel):
     email: EmailStr
     name: str | None
     picture: str | None
-    credits: int
-    is_subscribed: bool
     created_at: datetime
 
     model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)

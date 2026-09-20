@@ -5,9 +5,11 @@ FastAPI backend for the Lalfred dictation application.
 ## Features
 
 - **Google OAuth** — Sign in with Google, JWT-based sessions
-- **Credits system** — Purchase credits via Lemon Squeezy, consumed on transcription
-- **Transcription proxy** — Transparent proxy to ElevenLabs Scribe v2
+- **Releases** — Sparkle appcast feed and download redirects for the macOS app
 - **OpenTelemetry** — Distributed tracing for all requests, DB queries, and HTTP calls
+
+The app talks to the STT/LLM providers directly with the user's own keys —
+there is no transcription proxy, no billing and no credits here.
 
 ## Quick Start
 
@@ -52,11 +54,9 @@ pytest tests/ -v
 | GET | `/auth/google/login` | Get Google OAuth URL |
 | GET | `/auth/google/callback` | Google OAuth callback |
 | GET | `/users/me` | Current user profile |
-| GET | `/credits/balance` | Credit balance |
-| GET | `/credits/transactions` | Transaction history |
-| POST | `/transcribe` | Proxy to ElevenLabs Scribe v2 |
-| POST | `/webhooks/lemonsqueezy/order-created` | Lemon Squeezy order created webhook |
-| POST | `/webhooks/lemonsqueezy/subscription-payment-success` | Lemon Squeezy subscription payment success webhook |
+| GET | `/releases/appcast.xml` | Sparkle appcast feed (302 to the bucket) |
+| GET | `/releases/download/latest` | Always-latest DMG download (302) |
+| GET | `/releases/files/{file}` | Stable per-artefact download URLs (302) |
 
 ## Environment Variables
 

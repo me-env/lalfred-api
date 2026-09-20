@@ -1,17 +1,12 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, final
+from typing import final
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
-
-if TYPE_CHECKING:
-    from app.models.credit_transaction import CreditTransaction
-    from app.models.payment_claim import PaymentClaim
-    from app.models.subscription_payment import SubscriptionPayment
 
 
 @final
@@ -23,12 +18,7 @@ class User(Base):
     name: Mapped[str | None] = mapped_column(String(255))
     picture: Mapped[str | None] = mapped_column(String(2048))
     google_sub: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    credits: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-
-    transactions: Mapped[list["CreditTransaction"]] = relationship(back_populates="user")
-    subscription_payments: Mapped[list["SubscriptionPayment"]] = relationship(back_populates="user")
-    claimed_payments: Mapped[list["PaymentClaim"]] = relationship(back_populates="claimed_by")

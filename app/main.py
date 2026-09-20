@@ -6,17 +6,7 @@ from fastapi import FastAPI
 from app import models as _models  # noqa: F401
 from app.database import engine
 from app.logging_config import configure_logging
-from app.routers import (
-    auth,
-    claims,
-    credits,
-    llm,
-    releases,
-    stats,
-    transcribe,
-    users,
-    webhooks
-)
+from app.routers import auth, releases, users
 from app.telemetry import setup_telemetry
 
 configure_logging()
@@ -34,13 +24,7 @@ setup_telemetry(app)
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(credits.router)
-app.include_router(claims.router)
-app.include_router(llm.router)
-app.include_router(transcribe.router)
-app.include_router(webhooks.router)
 app.include_router(releases.router)
-app.include_router(stats.router)
 
 
 @app.get("/health")
